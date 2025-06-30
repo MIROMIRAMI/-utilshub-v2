@@ -1,12 +1,9 @@
 "use client";
 
-import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
-import { Sun, Moon, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
-
-function ThemeToggle() { /* ... Same as before ... */ }
 
 export function Header({ onMenuClick }: { onMenuClick: () => void }) {
   return (
@@ -16,7 +13,6 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
                 <Menu className="h-6 w-6" />
             </Button>
             <div className="flex items-center gap-2">
-                <ThemeToggle />
                 <SignedOut>
                     <Button asChild>
                         <Link href="/sign-in">Sign In</Link>

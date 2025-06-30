@@ -1,123 +1,142 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Play, Pause, RefreshCw, Flag } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
-// Helper function to format time
 const formatTime = (time: number) => {
-  const milliseconds = `0${Math.floor(time % 1000) / 10}`.slice(-2);
-  const seconds = `0${Math.floor((time / 1000) % 60)}`.slice(-2);
-  const minutes = `0${Math.floor((time / 60000) % 60)}`.slice(-2);
-  return { minutes, seconds, milliseconds };
+    const minutes = Math.floor(time / 60000).toString().padStart(2, '0');
+    const seconds = Math.floor((time % 60000) / 1000).toString().padStart(2, '0');
+    const milliseconds = Math.floor((time % 1000) / 10).toString().padStart(2, '0');
+    return `${minutes}:${seconds}.${milliseconds}`;
+};
+
+const Stopwatch = () => {
+    const [time, setTime] = useState(0);
+    const [isRunning, setIsRunning] = useState(false);
+    const [laps, setLaps] = useState<number[]>([]);
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+    useEffect(() => {
+        if (isRunning) {
+            const startTime = Date.now() - time;
+            timerRef.current = setInterval(() => {
+                setTime(Date.now() - startTime);
+            }, 10);
+        } else {
+            if (timerRef.current) clearInterval(timerRef.current);
+        }
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current);
+        };
+    }, [isRunning]);
+
+    const handleStartStop = () => setIsRunning(!isRunning);
+    const handleLap = () => { if (isRunning) setLaps(prev => [...prev, time]); };
+    const handleReset = () => { setIsRunning(false); setTime(0); setLaps([]); };
+
+    return (
+        <div className="flex flex-col items-center space-y-6 p-4">
+            <div className="font-mono text-7xl tracking-tighter w-full text-center bg-muted p-4 rounded-lg">{formatTime(time)}</div>
+            <div className="flex gap-4">
+                <Button onClick={handleReset} variant="destructive" className="w-24"><RefreshCw className="mr-2 h-4 w-4"/>Reset</Button>
+                <Button onClick={handleStartStop} className="w-36 text-lg">{isRunning ? <><Pause className="mr-2 h-5 w-5"/>Pause</> : <><Play className="mr-2 h-5 w-5"/>Start</>}</Button>
+                <Button onClick={handleLap} variant="outline" className="w-24" disabled={!isRunning}><Flag className="mr-2 h-4 w-4"/>Lap</Button>
+            </div>
+            <div className="w-full h-48 overflow-y-auto space-y-2 border p-2 rounded-lg">
+                {laps.map((lap, index) => (
+                    <div key={index} className="flex justify-between items-center p-2 bg-gray-100 dark:bg-gray-800 rounded-md">
+                        <span className="font-semibold">Lap {index + 1}</span>
+                        <span className="font-mono">{formatTime(lap)}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+const Timer = () => {
+    const [initialTime, setInitialTime] = useState({ h: '0', m: '5', s: '0' });
+    const [timeLeft, setTimeLeft] = useState(300);
+    const [isRunning, setIsRunning] = useState(false);
+    const audioRef = useRef<HTMLAudioElement>(null);
+
+    const totalSeconds = useMemo(() => {
+        const h = parseInt(initialTime.h) || 0;
+        const m = parseInt(initialTime.m) || 0;
+        const s = parseInt(initialTime.s) || 0;
+        return (h * 3600) + (m * 60) + s;
+    }, [initialTime]);
+
+    useEffect(() => {
+        if (!isRunning) setTimeLeft(totalSeconds);
+    }, [totalSeconds, isRunning]);
+
+    useEffect(() => {
+        if (!isRunning || timeLeft <= 0) return;
+        const intervalId = setInterval(() => {
+            setTimeLeft(prev => prev - 1);
+        }, 1000);
+        return () => clearInterval(intervalId);
+    }, [isRunning, timeLeft]);
+    
+    useEffect(() => {
+        if (timeLeft === 0 && isRunning) {
+            setIsRunning(false);
+            audioRef.current?.play().catch(e => console.error("Audio play failed:", e));
+        }
+    }, [timeLeft, isRunning]);
+
+    const handleStartStop = () => setIsRunning(!isRunning);
+    const handleReset = () => { setIsRunning(false); setTimeLeft(totalSeconds); };
+    const handleInputChange = (unit: 'h' | 'm' | 's', value: string) => {
+        const numValue = parseInt(value) || 0;
+        if (numValue >= 0) setInitialTime(prev => ({ ...prev, [unit]: value }));
+    };
+
+    const displayMinutes = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+    const displaySeconds = (timeLeft % 60).toString().padStart(2, '0');
+
+    return (
+        <div className="flex flex-col items-center space-y-6 p-4">
+            <audio ref={audioRef} src="/notification.mp3.mp3" preload="auto" />
+            <div className="font-mono text-8xl tracking-tighter w-full text-center">{`${displayMinutes}:${displaySeconds}`}</div>
+            <div className="flex gap-4">
+                <Button onClick={handleReset} variant="destructive" className="w-24"><RefreshCw className="mr-2 h-4 w-4"/>Reset</Button>
+                <Button onClick={handleStartStop} className="w-36 text-lg">{isRunning ? <><Pause className="mr-2 h-5 w-5"/>Pause</> : <><Play className="mr-2 h-5 w-5"/>Start</>}</Button>
+            </div>
+            <div className="flex items-center gap-4 p-4 border rounded-lg">
+                <Label>Set Time:</Label>
+                <Input type="number" value={initialTime.h} onChange={e => handleInputChange('h', e.target.value)} className="w-20" aria-label="Hours" />
+                <span>:</span>
+                <Input type="number" value={initialTime.m} onChange={e => handleInputChange('m', e.target.value)} className="w-20" aria-label="Minutes" />
+                <span>:</span>
+                <Input type="number" value={initialTime.s} onChange={e => handleInputChange('s', e.target.value)} className="w-20" aria-label="Seconds" />
+            </div>
+        </div>
+    );
 };
 
 export function TimerStopwatch() {
-  const [time, setTime] = useState(0);
-  const [isRunning, setIsRunning] = useState(false);
-  const [laps, setLaps] = useState<number[]>([]);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    if (isRunning) {
-      const startTime = Date.now() - time;
-      timerRef.current = setInterval(() => {
-        setTime(Date.now() - startTime);
-      }, 10);
-    } else if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [isRunning, time]);
-
-  const handleStartPause = () => setIsRunning(!isRunning);
-  const handleReset = useCallback(() => {
-    setIsRunning(false);
-    setTime(0);
-    setLaps([]);
-  }, []);
-  const handleLap = useCallback(() => {
-    if (isRunning) setLaps(prevLaps => [time, ...prevLaps]);
-  }, [isRunning, time]);
-
-  const { minutes, seconds, milliseconds } = formatTime(time);
-
-  const lapData = useMemo(() => {
-    if (laps.length === 0) return [];
-    const currentLapTime = time - (laps[0] || 0);
-    
-    const lapDiffs = laps.map((lap, i) => {
-        const prevLap = laps[i + 1] || 0;
-        return lap - prevLap;
-    });
-
-    if (lapDiffs.length < 2) return [{diff: currentLapTime, type: 'normal'}, ...lapDiffs.map(diff => ({ diff, type: 'normal' }))];
-    
-    const completedLaps = lapDiffs.slice(0, lapDiffs.length);
-    const minLap = Math.min(...completedLaps);
-    const maxLap = Math.max(...completedLaps);
-    
-    return [
-        { diff: currentLapTime, type: 'normal' },
-        ...lapDiffs.map(diff => ({
-            diff,
-            type: diff === minLap ? 'fastest' : diff === maxLap ? 'slowest' : 'normal'
-        }))
-    ];
-  }, [laps, time, isRunning]);
-
-
-  return (
-    <Card className="w-full max-w-md mx-auto shadow-none bg-transparent border-0">
-      <CardContent className="p-4 sm:p-6 flex flex-col items-center justify-center space-y-8">
-        {/* Time Display */}
-        <div className="w-full text-center">
-          <p className="text-8xl font-light font-mono tracking-tighter text-zinc-900 dark:text-zinc-50">
-            <span>{minutes}</span>
-            <span className="text-zinc-400 dark:text-zinc-500">:</span>
-            <span>{seconds}</span>
-            <span className="text-6xl text-zinc-400 dark:text-zinc-500">.{milliseconds}</span>
-          </p>
-        </div>
-
-        {/* Controls */}
-        <div className="flex justify-between items-center w-full max-w-xs">
-          <Button onClick={handleReset} variant="outline" className="w-20 h-20 rounded-full bg-zinc-100 dark:bg-zinc-800 border-0 disabled:opacity-50" disabled={time === 0 && !isRunning}>
-            <RefreshCw size={24} />
-          </Button>
-          <Button 
-            onClick={handleStartPause}
-            className={cn("w-24 h-24 rounded-full text-white shadow-lg transition-all", isRunning ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600")}>
-            {isRunning ? <Pause size={32} /> : <Play size={32} className="ml-1" />}
-          </Button>
-          <Button onClick={handleLap} variant="outline" className="w-20 h-20 rounded-full bg-zinc-100 dark:bg-zinc-800 border-0 disabled:opacity-50" disabled={!isRunning}>
-            <Flag size={24} />
-          </Button>
-        </div>
-
-        {/* Laps List */}
-        {laps.length > 0 && (
-          <div className="w-full space-y-2 pt-4 border-t border-zinc-200 dark:border-zinc-700">
-            <ul className="space-y-2 max-h-60 overflow-y-auto pr-2">
-              {lapData.map((lap, index) => (
-                <li key={index} className="flex justify-between items-baseline text-lg px-2 py-1 rounded-md">
-                  <span className="font-medium text-zinc-500">Lap {laps.length - index}</span>
-                  <span className={cn("font-mono",
-                      lap.type === 'fastest' && 'text-green-500',
-                      lap.type === 'slowest' && 'text-red-500',
-                  )}>
-                    {formatTime(lap.diff).minutes}:{formatTime(lap.diff).seconds}.{formatTime(lap.diff).milliseconds}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
+    return (
+        <Card className="w-full max-w-lg mx-auto shadow-xl shadow-gray-300/20 rounded-2xl border">
+            <CardHeader className="text-center">
+                <CardTitle className="text-3xl md:text-4xl font-bold tracking-tight">Timer & Stopwatch</CardTitle>
+                <CardDescription className="text-lg pt-1">Precise timing for your needs.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Tabs defaultValue="stopwatch" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="stopwatch">Stopwatch</TabsTrigger>
+                        <TabsTrigger value="timer">Timer</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="stopwatch" className="pt-6"><Stopwatch /></TabsContent>
+                    <TabsContent value="timer" className="pt-6"><Timer /></TabsContent>
+                </Tabs>
+            </CardContent>
+        </Card>
+    );
 }
