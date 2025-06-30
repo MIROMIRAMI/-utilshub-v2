@@ -4,9 +4,7 @@ import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { motion } from 'framer-motion';
 import { navigationData } from '@/lib/navigation';
-import { ArrowRight } from 'lucide-react';
 
-// Animation variants remain the same
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { staggerChildren: 0.05, delayChildren: 0.2 } }
@@ -17,7 +15,6 @@ const itemVariants = {
   visible: { y: 0, opacity: 1 }
 };
 
-// Filter out non-tool links like Dashboard to not show them on the dashboard page
 const toolList = navigationData.filter(item => item.type === 'link' && item.href !== '/');
 
 export default function HomePage() {
@@ -36,30 +33,19 @@ export default function HomePage() {
           Your complete suite of fast, beautiful, and easy-to-use utilities. All in one place.
         </p>
       </div>
-
       <motion.div 
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" // More columns and smaller gap
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
         {toolList.map(tool => (
-          <motion.div
-            key={tool.href}
-            variants={itemVariants}
-            whileHover={{ scale: 1.05, y: -5 }}
-            transition={{ type: "spring", stiffness: 300 }}
-          >
+          <motion.div key={tool.href} variants={itemVariants} whileHover={{ scale: 1.05, y: -5 }} transition={{ type: "spring", stiffness: 300 }}>
             <Link href={tool.href!} className="group h-full block">
               <Card className="h-full transition-all duration-300 overflow-hidden shadow-md hover:shadow-xl border-transparent hover:border-primary/20">
-                <CardHeader className="flex flex-row items-center gap-3 p-4"> {/* Smaller padding and gap */}
-                  <div className="p-2 bg-muted rounded-lg">
-                    <tool.icon className="w-6 h-6 text-primary" /> {/* Smaller icon */}
-                  </div>
-                  <div className="flex-1">
-                    <CardTitle className="text-base font-semibold">{tool.label}</CardTitle> {/* Smaller title */}
-                    <CardDescription className="text-xs line-clamp-2">{tool.description}</CardDescription> {/* Smaller description */}
-                  </div>
+                <CardHeader className="flex flex-row items-center gap-3 p-4">
+                  <div className="p-2 bg-muted rounded-lg"><tool.icon className="w-6 h-6 text-primary" /></div>
+                  <div className="flex-1"><CardTitle className="text-base font-semibold">{tool.label}</CardTitle><CardDescription className="text-xs line-clamp-2">{tool.description}</CardDescription></div>
                 </CardHeader>
               </Card>
             </Link>
