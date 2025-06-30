@@ -1,36 +1,48 @@
-"use client";
+"use client"; 
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useState } from 'react';
+import { StaticPageLayout } from "@/components/layout/StaticPageLayout";
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Slider } from '@/components/ui/slider';
-import { Copy, Check, AlertCircle, RefreshCw } from 'lucide-react';
-import { jwtDecode, JwtPayload } from "jwt-decode";
-import CryptoJS from 'crypto-js';
-import { cn } from '@/lib/utils';
+import { Send } from 'lucide-react';
 
-// JSON Formatter
-const JsonFormatter = () => { /* ... (Code is unchanged, but checked for errors) ... */ };
-// JWT Decoder
-const JwtDecoder = () => { /* ... (Code is unchanged, but checked for errors) ... */ };
-// Base64 Converter
-const Base64Converter = () => { /* ... (Code is unchanged, but checked for errors) ... */ };
-// URL Encoder
-const UrlEncoder = () => { /* ... (Code is unchanged, but checked for errors) ... */ };
-// Regex Tester
-const RegexTester = () => { /* ... (Code is unchanged, but checked for errors) ... */ };
-// UUID Generator
-const UuidGenerator = () => { /* ... (Code is unchanged, but checked for errors) ... */ };
-// Hashing Calculator
-const HashingCalculator = () => { /* ... (Code is unchanged, but checked for errors) ... */ };
-// Password Generator
-const PasswordGenerator = () => { /* ... (Code is unchanged, but checked for errors) ... */ };
+export default function ContactPage() {
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [message, setMessage] = useState('');
+    const [status, setStatus] = useState('');
 
-// Main Hub Component
-export function DeveloperHub() { /* ... (Code is unchanged) ... */ }
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!name || !email || !message) {
+            setStatus('Please fill out all fields.');
+            return;
+        }
+        console.log({ name, email, message });
+        setStatus('Thank you for your message! We will get back to you soon.');
+        setName('');
+        setEmail('');
+        setMessage('');
+    };
+
+    return (
+        <StaticPageLayout title="Contact Us">
+            <p className="mb-8">
+                We&apos;d love to hear from you! Whether you have a question, a suggestion for a new tool, or just want to say hello, please feel free to reach out using the form below.
+            </p>
+            <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-2"><Label htmlFor="name">Your Name</Label><Input id="name" type="text" value={name} onChange={e => setName(e.target.value)} placeholder="John Doe" /></div>
+                    <div className="space-y-2"><Label htmlFor="email">Your Email</Label><Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="john.doe@example.com" /></div>
+                </div>
+                <div className="space-y-2"><Label htmlFor="message">Message</Label><Textarea id="message" value={message} onChange={e => setMessage(e.target.value)} placeholder="Your message..." className="min-h-[150px]" /></div>
+                <div className="flex items-center justify-between">
+                    <Button type="submit" size="lg"><Send className="mr-2 h-4 w-4" /> Send Message</Button>
+                    {status && <p className="text-sm text-muted-foreground">{status}</p>}
+                </div>
+            </form>
+        </StaticPageLayout>
+    );
+}
